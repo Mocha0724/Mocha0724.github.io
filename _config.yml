@@ -3,17 +3,17 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Hexo
+title: JoeyZhang's Blog
 subtitle: ''
 description: ''
 keywords:
-author: John Doe
-language: en
+author: Joey Zhang
+language: ch
 timezone: ''
 
 # URL
 ## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
-url: http://example.com
+url: https://mocha0724.github.io
 permalink: :year/:month/:day/:title/
 permalink_defaults:
 pretty_urls:
@@ -101,4 +101,6 @@ theme: landscape
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
 deploy:
-  type: ''
+  type: git
+  repo: https://github.com/Mocha0724/Mocha0724.github.io.git
+  branch: gh-pages
