@@ -3,9 +3,9 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: JoeyZhang's Blog
+title: JoeyZhang's Sleeptalking
 subtitle: ''
-description: ''
+description: '学过那么点GIS，写过那么点代码，偶尔碎碎念'
 keywords:
 author: Joey Zhang
 language: ch
@@ -96,7 +96,7 @@ ignore:
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: landscape
+theme: very-simple
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
@@ -104,3 +104,20 @@ deploy:
   type: git
   repo: https://github.com/Mocha0724/Mocha0724.github.io.git
   branch: gh-pages
+
+# Oliver Theme Config
+favicon: /favicon.ico
+avatar: https://q1.qlogo.cn/g?b=qq&nk=123456&s=100
+
+menu:
+  Home: /
+  Archives: /archives
+  About: /about
+
+copyright: 'Copyright &copy; 2026 JoeyZhang'
+
+gitalk:
+  client_id: ''
+  client_secret: ''
+  repo: ''
+  owner: ''
