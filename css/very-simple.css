@@ -58,6 +58,97 @@ article {
   flex-grow: 1;
 }
 
+/* post page toc sidebar */
+.post-layout {
+  box-sizing: border-box;
+  margin: auto;
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+@media only screen and (max-width: 980px) {
+  .post-layout {
+    max-width: 92%;
+    gap: 1.25rem;
+  }
+}
+@media only screen and (max-width: 900px) {
+  .post-layout {
+    display: block;
+    max-width: 88.54%;
+  }
+}
+@media only screen and (max-width: 414px) {
+  .post-layout {
+    max-width: 95%;
+  }
+}
+
+.post-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.post-toc {
+  width: 260px;
+  flex: none;
+  position: sticky;
+  top: 84px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: transparent;
+  border: 1px solid #e6e6e6;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 14px;
+  line-height: 1.5;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.post-toc::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+@media only screen and (max-width: 900px) {
+  .post-toc {
+    display: none;
+  }
+}
+
+.post-toc-title {
+  font-family: "Helvetica Neue", "Microsoft Yahei", "微软雅黑", "WenQuanYi Micro Hei", SimHei, Heiti, Impact, Charcoal, serif;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.post-toc nav#post-toc-list {
+  background: transparent;
+  position: static;
+  top: auto;
+  z-index: auto;
+  font-family: Helvetica, Tahoma, Arial, STXihei, "Microsoft YaHei", "WenQuanYi Micro Hei", SimSun, Heiti, ubuntu, sans-serif;
+  font-size: 14px;
+}
+
+#post-toc-list .toc-list {
+  margin: 0;
+  padding-left: 0.75rem;
+}
+
+.post-toc #post-toc-list a {
+  color: #666;
+  text-decoration: none;
+  border-bottom: none;
+}
+
+.post-toc #post-toc-list a:hover,
+.post-toc #post-toc-list .is-active-link {
+  color: #111;
+}
+
 /**
  * header
  */
