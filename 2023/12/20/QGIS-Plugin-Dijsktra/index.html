@@ -1,0 +1,88 @@
+<!DOCTYPE html><html><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content=""><title>【技术笔记】QGIS插件开发 | JoeyZhang's Sleeptalking</title><link rel="stylesheet" type="text/css" href="/css/normalize.css"><link rel="stylesheet" type="text/css" href="/css/highlight.css"><link rel="stylesheet" type="text/css" href="/css/very-simple.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/font-awesome/4.5.0/css/font-awesome.min.css"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><meta name="generator" content="Hexo 7.3.0"></head><body><!-- include the sidebar--><!-- include ./includes/sidebar.jade--><!-- Blog title and subtitle--><header><div class="container header"><div class="title-group"><a id="logo" href="/." class="title">JoeyZhang's Sleeptalking</a><span class="subtitle">学过那么点GIS，写过那么点代码，时常碎碎念</span></div><label id="toggle-menu" for="menu" onclick><i class="fa fa-bars"></i></label></div></header><!-- use checkbox hack for toggle nav-bar on small screens--><input id="menu" type="checkbox"><!-- Navigation Links--><nav id="nav"><div class="container"><a href="/" class="sidebar-nav-item active">Home</a><a href="/archives" class="sidebar-nav-item">Archives</a></div></nav><div id="header-margin-bar"></div><!-- gallery that comes before the header--><div class="wrapper"><div class="container post-header"><h1>【技术笔记】QGIS插件开发</h1></div></div><div class="wrapper"><div class="container meta"><div class="post-time">2023-12-20</div><div class="post-tags"><a class="post-tag-none-link" href="/tags/GIS/" rel="tag">GIS</a>/<a class="post-tag-none-link" href="/tags/%E6%8A%80%E6%9C%AF%E7%AC%94%E8%AE%B0/" rel="tag">技术笔记</a></div></div></div><article><div class="container post"><blockquote>
+<p>课程作业中QGIS插件开发的一些笔记</p>
+</blockquote>
+<h2 id="1-开发与迭代"><a href="#1-开发与迭代" class="headerlink" title="1. 开发与迭代"></a>1. 开发与迭代</h2><p>首先基于QGIS中的Plugin Builder创建模板</p>
+<ul>
+<li>使用 QGIS 自带的 Python 环境（天然带有 <code>qgis</code>、<code>PyQt</code> 等依赖）。</li>
+<li>使用其中的开发部署工具（例如 <code>pb_tool</code>）把插件目录部署到你当前 QGIS profile 对应的插件目录，而不是每次手动拷贝。</li>
+<li>安装插件重载工具（如 Plugin Reloader），这样修改代码后可以快速重新加载插件进行验证。</li>
+</ul>
+<h3 id="模板中的一些核心部分"><a href="#模板中的一些核心部分" class="headerlink" title="模板中的一些核心部分"></a>模板中的一些核心部分</h3><p>一个典型 QGIS Python 插件，至少包含下面这些文件&#x2F;概念：</p>
+<ol>
+<li><code>metadata.txt</code><ul>
+<li>包括插件信息：<code>name</code>、<code>version</code>、<code>qgisMinimumVersion</code>、<code>description</code>、<code>icon</code>、<code>category</code> 等。</li>
+<li>QGIS 和插件仓库用它来展示、校验兼容性与版本。</li>
+</ul>
+</li>
+<li><code>__init__.py</code><ul>
+<li>入口函数：<code>classFactory(iface)</code>。</li>
+<li>QGIS 会调用它来拿到你的“主类实例”（主类负责注册菜单、创建工具、处理 UI 事件）。</li>
+</ul>
+</li>
+<li>主类文件（例如 <code>main_plugin.py</code> &#x2F; <code>my_plugin.py</code>，由你命名）<ul>
+<li>必须实现常见方法：<ul>
+<li><code>__init__(self, iface)</code>：保存 <code>iface</code>（<code>QgsInterface</code>），这是访问 QGIS UI&#x2F;地图画布&#x2F;消息栏的入口。</li>
+<li><code>initGui(self)</code>：创建 <code>QAction</code>，注册到菜单&#x2F;工具栏。</li>
+<li><code>unload(self)</code>：卸载时移除 QAction（否则会重复注册）。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<h3 id="模板生成的主类核心结构"><a href="#模板生成的主类核心结构" class="headerlink" title="模板生成的主类核心结构"></a>模板生成的主类核心结构</h3><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> qgis.PyQt.QtCore <span class="keyword">import</span> Qt</span><br><span class="line"><span class="keyword">from</span> qgis.PyQt.QtGui <span class="keyword">import</span> QIcon</span><br><span class="line"><span class="keyword">from</span> qgis.PyQt.QtWidgets <span class="keyword">import</span> QAction</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">MyPlugin</span>:</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, iface</span>):</span><br><span class="line">        <span class="variable language_">self</span>.iface = iface</span><br><span class="line">        <span class="variable language_">self</span>.actions = []</span><br><span class="line">        <span class="variable language_">self</span>.menu = <span class="variable language_">self</span>.tr(<span class="string">&quot;&amp;My Plugin&quot;</span>)</span><br><span class="line">        <span class="variable language_">self</span>.first_start = <span class="literal">True</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">tr</span>(<span class="params">self, message</span>):</span><br><span class="line">        <span class="comment"># 翻译字符串（可选但常用）</span></span><br><span class="line">        <span class="keyword">return</span> <span class="variable language_">self</span>.iface.appMainWindow().tr(message)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">initGui</span>(<span class="params">self</span>):</span><br><span class="line">        action = QAction(QIcon(<span class="string">&quot;:/plugins/my_plugin/icon.png&quot;</span>), <span class="variable language_">self</span>.tr(<span class="string">&quot;Run&quot;</span>), <span class="variable language_">self</span>.iface.mainWindow())</span><br><span class="line">        action.triggered.connect(<span class="variable language_">self</span>.run)</span><br><span class="line">        <span class="variable language_">self</span>.iface.addPluginToMenu(<span class="variable language_">self</span>.menu, action)</span><br><span class="line">        <span class="variable language_">self</span>.iface.addToolBarIcon(action)</span><br><span class="line">        <span class="variable language_">self</span>.actions.append(action)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">unload</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="keyword">for</span> action <span class="keyword">in</span> <span class="variable language_">self</span>.actions:</span><br><span class="line">            <span class="variable language_">self</span>.iface.removePluginMenu(<span class="variable language_">self</span>.menu, action)</span><br><span class="line">            <span class="variable language_">self</span>.iface.removeToolBarIcon(action)</span><br><span class="line"></span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">run</span>(<span class="params">self</span>):</span><br><span class="line">        <span class="comment"># 打开对话框 / 开始交互 / 调算法</span></span><br><span class="line">        <span class="keyword">pass</span></span><br></pre></td></tr></table></figure>
+
+<h2 id="2-UI接入"><a href="#2-UI接入" class="headerlink" title="2. UI接入"></a>2. UI接入</h2><h3 id="2-1-用-Qt-Designer-设计界面"><a href="#2-1-用-Qt-Designer-设计界面" class="headerlink" title="2.1 用 Qt Designer 设计界面"></a>2.1 用 Qt Designer 设计界面</h3><p>流程：</p>
+<ol>
+<li>用 Qt Designer 设计对话框&#x2F;窗体，导出 <code>.ui</code></li>
+<li>在 Python 里加载 <code>.ui</code>：<ul>
+<li>常见做法是 <code>uic.loadUiType()</code> 动态加载并 <code>setupUi(self)</code></li>
+</ul>
+</li>
+</ol>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">import</span> os</span><br><span class="line"><span class="keyword">from</span> qgis.PyQt <span class="keyword">import</span> uic</span><br><span class="line"><span class="keyword">from</span> qgis.PyQt <span class="keyword">import</span> QtWidgets</span><br><span class="line"></span><br><span class="line">FORM_CLASS, _ = uic.loadUiType(os.path.join(os.path.dirname(__file__), <span class="string">&quot;dialog_base.ui&quot;</span>))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">MyDialog</span>(QtWidgets.QDialog, FORM_CLASS):</span><br><span class="line">    <span class="keyword">def</span> <span class="title function_">__init__</span>(<span class="params">self, parent=<span class="literal">None</span></span>):</span><br><span class="line">        <span class="built_in">super</span>().__init__(parent)</span><br><span class="line">        <span class="variable language_">self</span>.setupUi(<span class="variable language_">self</span>)</span><br></pre></td></tr></table></figure>
+
+<h3 id="2-2-接入UI事件"><a href="#2-2-接入UI事件" class="headerlink" title="2.2 接入UI事件"></a>2.2 接入UI事件</h3><p>建议把所有 <code>button.clicked</code> &#x2F; <code>comboBox.currentIndexChanged</code> 这类信号连接放到一个集中位置（比如 <code>run()</code> 里）。</p>
+<p>典型模式是：</p>
+<ul>
+<li><code>run()</code>：创建&#x2F;显示对话框，并连接信号</li>
+<li><code>accepted()</code> &#x2F; <code>onOkClicked()</code>：从 UI 读取参数，调用算法或开始任务</li>
+<li><code>rejected()</code> &#x2F; <code>onCancelClicked()</code>：清理状态</li>
+</ul>
+<h2 id="4-与地图交互：点选-框选-拾取坐标"><a href="#4-与地图交互：点选-框选-拾取坐标" class="headerlink" title="4. 与地图交互：点选&#x2F;框选&#x2F;拾取坐标"></a>4. 与地图交互：点选&#x2F;框选&#x2F;拾取坐标</h2><p>大多数插件交互都需要读用户在地图上的操作，比如点击起终点等。</p>
+<p>通用做法：</p>
+<ul>
+<li>用 <code>QgsMapToolEmitPoint</code>（或自定义<code>QgsMapTool</code>）捕获鼠标点击</li>
+<li>在点击回调里获取 <code>QgsPointXY</code> 或屏幕到地图的坐标</li>
+<li>用 <code>QgsProject.instance()</code>、<code>iface.mapCanvas()</code> 更新界面或创建要素图层</li>
+</ul>
+<p>关键点：</p>
+<ul>
+<li>坐标系要一致：如果输入图层&#x2F;输出图层 CRS 不同，需要做坐标转换（<code>QgsCoordinateTransform</code>）。</li>
+<li>输出可视化建议用 <code>memory</code> provider 创建临时图层，便于用户理解交互结果。</li>
+</ul>
+<h2 id="5-图层读写：Raster-Vector-内存图层怎么处理"><a href="#5-图层读写：Raster-Vector-内存图层怎么处理" class="headerlink" title="5. 图层读写：Raster&#x2F;Vector&#x2F;内存图层怎么处理"></a>5. 图层读写：Raster&#x2F;Vector&#x2F;内存图层怎么处理</h2><p>常见的工程结构是：</p>
+<ul>
+<li>输入：从 <code>QgsProject.instance().mapLayers()</code> 取得图层、根据名称&#x2F;ID选择具体图层</li>
+<li>参数准备：从栅格 provider 获取 extent、分辨率、行列数等</li>
+<li>运算：在算法层处理（可以是最短路、栅格成本、矢量拓扑等）</li>
+<li>输出：把结果写回图层（<code>QgsVectorLayer</code> + <code>QgsFeature</code> + <code>QgsGeometry</code>）</li>
+</ul>
+<h3 id="输出内存图层"><a href="#输出内存图层" class="headerlink" title="输出内存图层"></a>输出内存图层</h3><p>典型步骤：</p>
+<ul>
+<li><code>line_layer = QgsVectorLayer(&quot;LineString&quot;, &quot;Result&quot;, &quot;memory&quot;)</code></li>
+<li><code>pr = line_layer.dataProvider()</code></li>
+<li><code>feature = QgsFeature()</code> + <code>feature.setGeometry(...)</code></li>
+<li><code>pr.addFeatures([feature])</code></li>
+<li><code>QgsProject.instance().addMapLayer(line_layer)</code></li>
+</ul>
+<h2 id="7-资源与图标"><a href="#7-资源与图标" class="headerlink" title="7. 资源与图标"></a>7. 资源与图标</h2><p>（如果希望给插件设计个图标）为了让图标在 QGIS 里稳定加载，通常会：</p>
+<ul>
+<li>把 <code>icon.png</code> 放入 <code>resources.qrc</code></li>
+<li>用资源编译得到 <code>resources.py</code></li>
+<li>在 QAction 或插件引用里使用资源路径（例如 <code>:/plugins/your_plugin/icon.png</code>）</li>
+</ul>
+<p>通常不建议手动修改 <code>resources.py</code>（由资源编译工具自动生成）。</p>
+</div><!-- comment system--><div class="container"><hr></div></article><footer id="footer"><div class="container"><div class="bar"><div class="social"><a href="/atom.xml" target="_blank"><i class="fa fa-rss"></i></a></div><div class="footer">© 2026 <a href="/" rel="nofollow">Joey Zhang</a>. Powered by <a rel="nofollow" target="_blank" href="https://hexo.io">Hexo</a>. Theme <a target="_blank" href="https://github.com/lotabout/very-simple">very-simple</a>.</div></div></div></footer><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.css"><script src="//cdn.bootcss.com/jquery/2.0.3/jquery.min.js"></script><script src="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.pack.js"></script><script>$(document).ready(function() {
+    $(".fancybox").fancybox();
+});
+</script></body></html>
