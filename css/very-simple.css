@@ -842,3 +842,72 @@ article table tr:nth-child(2n) {
 .all-tags::before {
   content: "\f02c";
 }
+
+/**
+ * mobile typography tune (keep desktop unchanged)
+ */
+@media only screen and (max-width: 768px) {
+  article {
+    font-size: 16px;
+    line-height: 1.85;
+  }
+  .post-header h1 {
+    font-size: 1.75em;
+    line-height: 1.25;
+  }
+  article h1 {
+    font-size: 1.7em;
+  }
+  article h2 {
+    font-size: 1.45em;
+    margin-top: 1.5em;
+  }
+  article h3 {
+    font-size: 1.25em;
+    margin-top: 1.3em;
+  }
+  article p,
+  article li {
+    word-break: break-word;
+  }
+  article .entry {
+    font-size: 1rem;
+  }
+  article blockquote {
+    margin: 1.1em 0;
+    padding: 0 0.85em;
+  }
+  article pre,
+  article .highlight {
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 1.2em 0;
+  }
+  article code {
+    font-size: 0.85em;
+  }
+  article table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+@media only screen and (max-width: 414px) {
+  #header-margin-bar {
+    margin: 12px 0;
+  }
+  .container,
+  .post-layout {
+    max-width: 94%;
+  }
+  .post-entry {
+    margin: 2.6em 0;
+  }
+  .post-entry .post-desc .post-content {
+    padding-left: 0;
+  }
+  .wrapper .meta {
+    margin-bottom: 1.2em;
+    padding: 0.35em 0.5em;
+  }
+}
