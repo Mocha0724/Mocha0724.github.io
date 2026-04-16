@@ -1,0 +1,174 @@
+<!DOCTYPE html><html><head><meta http-equiv="content-type" content="text/html; charset=utf-8"><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport"><meta content="yes" name="apple-mobile-web-app-capable"><meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"><meta content="telephone=no" name="format-detection"><meta name="description" content=""><title>Apache Hudi + Sedona 地学数据湖完整部署指南 | JoeyZhang's Blog</title><link rel="stylesheet" type="text/css" href="/css/normalize.css"><link rel="stylesheet" type="text/css" href="/css/highlight.css"><link rel="stylesheet" type="text/css" href="/css/very-simple.css"><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/font-awesome/4.5.0/css/font-awesome.min.css"><link rel="Shortcut Icon" type="image/x-icon" href="/favicon.ico"><meta name="generator" content="Hexo 7.3.0"></head><body><!-- include the sidebar--><!-- include ./includes/sidebar.jade--><!-- Blog title and subtitle--><header><div class="container header"><a id="logo" href="/." class="title">JoeyZhang's Blog</a><span class="subtitle"></span><label id="toggle-menu" for="menu" onclick><i class="fa fa-bars"></i></label></div></header><!-- use checkbox hack for toggle nav-bar on small screens--><input id="menu" type="checkbox"><!-- Navigation Links--><nav id="nav"><div class="container"><a href="/" class="sidebar-nav-item active">Home</a><a href="/archives" class="sidebar-nav-item">Archives</a></div></nav><div id="header-margin-bar"></div><!-- gallery that comes before the header--><div class="wrapper"><div class="container post-header"><h1>Apache Hudi + Sedona 地学数据湖完整部署指南</h1></div></div><div class="wrapper"><div class="container meta"><div class="post-time">2026-04-16</div><div class="post-tags"><a class="post-tag-none-link" href="/tags/Hadoop/" rel="tag">Hadoop</a>/<a class="post-tag-none-link" href="/tags/Hudi/" rel="tag">Hudi</a>/<a class="post-tag-none-link" href="/tags/Sedona/" rel="tag">Sedona</a>/<a class="post-tag-none-link" href="/tags/Spark/" rel="tag">Spark</a>/<a class="post-tag-none-link" href="/tags/%E6%8A%80%E6%9C%AF%E7%AC%94%E8%AE%B0/" rel="tag">技术笔记</a></div></div></div><article><div class="container post"><p>本文详细记录基于 Apache Hudi 和 Sedona 的地学数据湖开发环境配置。<br>针对课题组服务器的开发环境，涉及一些特殊问题。<br>主要包括配置各种jar包、Pyspark作为开发语言可能遇到的一些麻烦。</p>
+<h2 id="环境信息"><a href="#环境信息" class="headerlink" title="环境信息"></a>环境信息</h2><table>
+<thead>
+<tr>
+<th>组件</th>
+<th>版本</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Hadoop</td>
+<td>3.3.6</td>
+</tr>
+<tr>
+<td>Spark</td>
+<td>3.4.3</td>
+</tr>
+<tr>
+<td>Sedona</td>
+<td>1.4.1</td>
+</tr>
+<tr>
+<td>Hudi</td>
+<td>1.0.0</td>
+</tr>
+<tr>
+<td>Linux</td>
+<td>Ubuntu 18.04.6</td>
+</tr>
+<tr>
+<td>开发语言</td>
+<td>PySpark</td>
+</tr>
+</tbody></table>
+<h2 id="整体部署方案"><a href="#整体部署方案" class="headerlink" title="整体部署方案"></a>整体部署方案</h2><p>以两个节点为例，额外的节点可以参考一样的方案</p>
+<ul>
+<li><strong>VM_A</strong> : Spark Master + HDFS NameNode + DataNode</li>
+<li><strong>VM_B</strong> : Spark Worker + HDFS DataNode</li>
+<li>所有服务以 <code>hadoop</code> 用户身份运行</li>
+</ul>
+<p>课题组服务器的实际环境是物理机中建多个虚拟机<br>同一个物理机之间的网络可以用内部的IP直接连接，不用公网IP</p>
+<hr>
+<h2 id="第一阶段：基础系统配置"><a href="#第一阶段：基础系统配置" class="headerlink" title="第一阶段：基础系统配置"></a>第一阶段：基础系统配置</h2><h3 id="系统更新（所有节点）"><a href="#系统更新（所有节点）" class="headerlink" title="系统更新（所有节点）"></a>系统更新（所有节点）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt update</span><br><span class="line"><span class="built_in">sudo</span> apt upgrade -y</span><br></pre></td></tr></table></figure>
+
+<h3 id="安装-Java"><a href="#安装-Java" class="headerlink" title="安装 Java"></a>安装 Java</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 安装 OpenJDK 11</span></span><br><span class="line"><span class="built_in">sudo</span> apt install openjdk-11-jdk -y</span><br><span class="line"></span><br><span class="line"><span class="comment"># 验证安装</span></span><br><span class="line">java -version</span><br><span class="line">javac -version</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-JAVA-HOME-环境变量"><a href="#配置-JAVA-HOME-环境变量" class="headerlink" title="配置 JAVA_HOME 环境变量"></a>配置 JAVA_HOME 环境变量</h3><p>编辑 <code>~/.bashrc</code> 或 <code>/etc/environment</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$PATH</span>:<span class="variable">$JAVA_HOME</span>/bin</span><br></pre></td></tr></table></figure>
+
+<p>运行以下命令生效：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">source</span> ~/.bashrc  <span class="comment"># 或 source /etc/environment</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="安装-Scala"><a href="#安装-Scala" class="headerlink" title="安装 Scala"></a>安装 Scala</h3><p>实际采用了2.12版本，如果是其他版本后续的各种包需要改为对应版本</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install scala -y</span><br><span class="line">scala -version</span><br></pre></td></tr></table></figure>
+
+<h3 id="安装-Python-3-和-Pip"><a href="#安装-Python-3-和-Pip" class="headerlink" title="安装 Python 3 和 Pip"></a>安装 Python 3 和 Pip</h3><p>这里注意pyspark的版本需要和spark集群对应（也影响后续sedona的版本）</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> apt install python3 python3-pip -y</span><br><span class="line">pip3 install pyspark</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-SSH-免密登录"><a href="#配置-SSH-免密登录" class="headerlink" title="配置 SSH 免密登录"></a>配置 SSH 免密登录</h3><p><strong>在 VM_A 上生成 SSH 密钥对：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-keygen -t rsa  <span class="comment"># 一直按回车，不设置密码</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>配置本地免密登录：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-copy-id hadoop@localhost</span><br></pre></td></tr></table></figure>
+
+<p><strong>配置到远程节点的免密登录：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ssh-copy-id hadoop@192.168.1.101  <span class="comment"># 复制 SSH 公钥到 VM_B</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>验证免密登录：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">ssh 192.168.1.100  <span class="comment"># 测试本地</span></span><br><span class="line">ssh 192.168.1.101   <span class="comment"># 测试远程</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-etc-hosts（所有节点）"><a href="#配置-etc-hosts（所有节点）" class="headerlink" title="配置 &#x2F;etc&#x2F;hosts（所有节点）"></a>配置 &#x2F;etc&#x2F;hosts（所有节点）</h3><p>在所有节点的 <code>/etc/hosts</code> 中添加：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">192.168.1.100 master-node vm-a</span><br><span class="line">192.168.1.101  worker-node vm-b</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="第二阶段：部署-HDFS-分布式文件系统"><a href="#第二阶段：部署-HDFS-分布式文件系统" class="headerlink" title="第二阶段：部署 HDFS 分布式文件系统"></a>第二阶段：部署 HDFS 分布式文件系统</h2><h3 id="下载和安装-Hadoop"><a href="#下载和安装-Hadoop" class="headerlink" title="下载和安装 Hadoop"></a>下载和安装 Hadoop</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">wget https://dlcdn.apache.org/hadoop/common/hadoop-3.3.6/hadoop-3.3.6.tar.gz</span><br><span class="line">tar -xzf hadoop-3.3.6.tar.gz</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> hadoop-3.3.6 /opt/hadoop</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> -R hadoop:hadoop /opt/hadoop</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-Hadoop-环境变量（所有节点，hadoop-用户）"><a href="#配置-Hadoop-环境变量（所有节点，hadoop-用户）" class="headerlink" title="配置 Hadoop 环境变量（所有节点，hadoop 用户）"></a>配置 Hadoop 环境变量（所有节点，hadoop 用户）</h3><p>编辑 <code>~/.bashrc</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> HADOOP_HOME=/opt/hadoop</span><br><span class="line"><span class="built_in">export</span> HADOOP_CONF_DIR=<span class="variable">$HADOOP_HOME</span>/etc/hadoop</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$PATH</span>:<span class="variable">$HADOOP_HOME</span>/bin:<span class="variable">$HADOOP_HOME</span>/sbin</span><br><span class="line"><span class="built_in">export</span> HADOOP_COMMON_LIB_NATIVE_DIR=<span class="variable">$&#123;HADOOP_HOME&#125;</span>/lib/native</span><br><span class="line"><span class="built_in">export</span> HADOOP_OPTS=<span class="string">&quot;-Djava.library.path=<span class="variable">$&#123;HADOOP_HOME&#125;</span>/lib/native&quot;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="创建-HDFS-数据目录"><a href="#创建-HDFS-数据目录" class="headerlink" title="创建 HDFS 数据目录"></a>创建 HDFS 数据目录</h3><p><strong>在 VM_A 上：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p /home/hadoop/hadoop_data/namenode_metadata</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p /home/hadoop/hadoop_data/datanode_storage</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p /home/hadoop/hadoop_tmp_data</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> -R hadoop:hadoop /home/hadoop/hadoop_data</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> -R hadoop:hadoop /home/hadoop/hadoop_tmp_data</span><br></pre></td></tr></table></figure>
+
+<p><strong>在 VM_B 上：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p /home/hadoop/hadoop_data/datanode_storage</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mkdir</span> -p /home/hadoop/hadoop_tmp_data</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> -R hadoop:hadoop /home/hadoop/hadoop_data</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> -R hadoop:hadoop /home/hadoop/hadoop_tmp_data</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-Hadoop-配置文件（VM-A）"><a href="#配置-Hadoop-配置文件（VM-A）" class="headerlink" title="配置 Hadoop 配置文件（VM_A）"></a>配置 Hadoop 配置文件（VM_A）</h3><p>编辑 <code>/opt/hadoop/etc/hadoop/hadoop-env.sh</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64</span><br><span class="line"><span class="built_in">export</span> HDFS_NAMENODE_USER=<span class="string">&quot;hadoop&quot;</span></span><br><span class="line"><span class="built_in">export</span> HDFS_DATANODE_USER=<span class="string">&quot;hadoop&quot;</span></span><br><span class="line"><span class="built_in">export</span> HDFS_SECONDARYNAMENODE_USER=<span class="string">&quot;hadoop&quot;</span></span><br></pre></td></tr></table></figure>
+
+<p>编辑 <code>/opt/hadoop/etc/hadoop/core-site.xml</code>：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>fs.defaultFS<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>hdfs://192.168.1.100:9000<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>hadoop.tmp.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>file:///home/hadoop/hadoop_tmp_data<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>编辑 <code>/opt/hadoop/etc/hadoop/hdfs-site.xml</code>：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="tag">&lt;<span class="name">configuration</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.replication<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>2<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.name.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>file:///home/hadoop/hadoop_data/namenode_metadata<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.datanode.data.dir<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>file:///home/hadoop/hadoop_data/datanode_storage<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.namenode.http-address<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>192.168.1.100:9870<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">property</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">name</span>&gt;</span>dfs.permissions.enabled<span class="tag">&lt;/<span class="name">name</span>&gt;</span></span><br><span class="line">        <span class="tag">&lt;<span class="name">value</span>&gt;</span>false<span class="tag">&lt;/<span class="name">value</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;/<span class="name">property</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">configuration</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>编辑 <code>/opt/hadoop/etc/hadoop/workers</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">192.168.1.100</span><br><span class="line">192.168.1.101</span><br></pre></td></tr></table></figure>
+
+<h3 id="分发-Hadoop-配置到-VM-B"><a href="#分发-Hadoop-配置到-VM-B" class="headerlink" title="分发 Hadoop 配置到 VM_B"></a>分发 Hadoop 配置到 VM_B</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在 VM_A 上，hadoop 用户身份执行</span></span><br><span class="line">scp -r /opt/hadoop/etc/hadoop/* hadoop@192.168.1.101:/opt/hadoop/etc/hadoop/</span><br></pre></td></tr></table></figure>
+
+<h3 id="格式化-HDFS（仅-VM-A，一次性）"><a href="#格式化-HDFS（仅-VM-A，一次性）" class="headerlink" title="格式化 HDFS（仅 VM_A，一次性）"></a>格式化 HDFS（仅 VM_A，一次性）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在 VM_A 上，hadoop 用户身份执行</span></span><br><span class="line">/opt/hadoop/bin/hdfs namenode -format</span><br></pre></td></tr></table></figure>
+
+<h3 id="启动-HDFS-集群"><a href="#启动-HDFS-集群" class="headerlink" title="启动 HDFS 集群"></a>启动 HDFS 集群</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在 VM_A 上，hadoop 用户身份执行</span></span><br><span class="line">/opt/hadoop/sbin/start-dfs.sh</span><br></pre></td></tr></table></figure>
+
+<h3 id="验证-HDFS"><a href="#验证-HDFS" class="headerlink" title="验证 HDFS"></a>验证 HDFS</h3><p><strong>检查进程：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jps  <span class="comment"># 应看到 NameNode 和 DataNode</span></span><br></pre></td></tr></table></figure>
+
+<p>**访问 Web UI：**访问 <code>http://192.168.1.100:9870</code></p>
+<p><strong>测试文件操作：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">/opt/hadoop/bin/hdfs dfs -<span class="built_in">mkdir</span> /test_dir</span><br><span class="line">/opt/hadoop/bin/hdfs dfs -<span class="built_in">ls</span> /</span><br><span class="line">/opt/hadoop/bin/hdfs dfs -put /opt/hadoop/README.txt /test_dir/</span><br><span class="line">/opt/hadoop/bin/hdfs dfs -<span class="built_in">cat</span> /test_dir/README.txt</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="第三阶段：部署-Apache-Spark"><a href="#第三阶段：部署-Apache-Spark" class="headerlink" title="第三阶段：部署 Apache Spark"></a>第三阶段：部署 Apache Spark</h2><h3 id="下载和安装-Spark（VM-A）"><a href="#下载和安装-Spark（VM-A）" class="headerlink" title="下载和安装 Spark（VM_A）"></a>下载和安装 Spark（VM_A）</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">wget https://dlcdn.apache.org/spark/spark-3.4.3/spark-3.4.3-bin-hadoop3.tgz</span><br><span class="line">tar -xzf spark-3.4.3-bin-hadoop3.tgz</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">mv</span> spark-3.4.3-bin-hadoop3 /opt/spark</span><br><span class="line"><span class="built_in">sudo</span> <span class="built_in">chown</span> -R hadoop:hadoop /opt/spark</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-Spark-环境变量（所有节点）"><a href="#配置-Spark-环境变量（所有节点）" class="headerlink" title="配置 Spark 环境变量（所有节点）"></a>配置 Spark 环境变量（所有节点）</h3><p>编辑 <code>~/.bashrc</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> SPARK_HOME=/opt/spark</span><br><span class="line"><span class="built_in">export</span> PATH=<span class="variable">$SPARK_HOME</span>/bin:<span class="variable">$SPARK_HOME</span>/sbin:<span class="variable">$PATH</span></span><br><span class="line"><span class="built_in">export</span> HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop</span><br><span class="line"><span class="built_in">export</span> PYSPARK_PYTHON=python3</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-Spark（VM-A）"><a href="#配置-Spark（VM-A）" class="headerlink" title="配置 Spark（VM_A）"></a>配置 Spark（VM_A）</h3><p>复制模板文件：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">cd</span> /opt/spark/conf</span><br><span class="line"><span class="built_in">cp</span> spark-env.sh.template spark-env.sh</span><br><span class="line"><span class="built_in">cp</span> workers.template workers</span><br></pre></td></tr></table></figure>
+
+<p>编辑 <code>spark-env.sh</code>：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">export</span> JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64</span><br><span class="line"><span class="built_in">export</span> SPARK_MASTER_HOST=<span class="string">&#x27;192.168.1.100&#x27;</span></span><br><span class="line"><span class="built_in">export</span> SPARK_MASTER_PORT=7077</span><br><span class="line"><span class="built_in">export</span> HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop</span><br></pre></td></tr></table></figure>
+
+<p>编辑 <code>workers</code>：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">192.168.1.100</span><br><span class="line">192.168.1.101</span><br></pre></td></tr></table></figure>
+
+<h3 id="分发-Spark-到-VM-B"><a href="#分发-Spark-到-VM-B" class="headerlink" title="分发 Spark 到 VM_B"></a>分发 Spark 到 VM_B</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在 VM_A 上，hadoop 用户身份执行</span></span><br><span class="line">scp -r /opt/spark/* hadoop@192.168.1.101:/opt/spark/</span><br></pre></td></tr></table></figure>
+
+<h3 id="启动-Spark-集群"><a href="#启动-Spark-集群" class="headerlink" title="启动 Spark 集群"></a>启动 Spark 集群</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 在 VM_A 上，hadoop 用户身份执行</span></span><br><span class="line">/opt/spark/sbin/start-master.sh</span><br><span class="line">/opt/spark/sbin/start-workers.sh</span><br></pre></td></tr></table></figure>
+
+<h3 id="验证-Spark"><a href="#验证-Spark" class="headerlink" title="验证 Spark"></a>验证 Spark</h3><p>**访问 Web UI：**访问 <code>http://192.168.1.100:8080</code></p>
+<p><strong>检查进程：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">jps  <span class="comment"># 应看到 Master 和 Worker</span></span><br></pre></td></tr></table></figure>
+
+<p><strong>测试 PySpark：</strong></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">pyspark --master spark://192.168.1.100:7077</span><br></pre></td></tr></table></figure>
+
+<p>在 PySpark shell 中：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">data = <span class="built_in">list</span>(<span class="built_in">range</span>(<span class="number">1000</span>))</span><br><span class="line">rdd = spark.sparkContext.parallelize(data)</span><br><span class="line"><span class="built_in">print</span>(rdd.count())  <span class="comment"># 应输出 1000</span></span><br><span class="line">spark.stop()</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="第四阶段：配置-Apache-Hudi-和-Sedona"><a href="#第四阶段：配置-Apache-Hudi-和-Sedona" class="headerlink" title="第四阶段：配置 Apache Hudi 和 Sedona"></a>第四阶段：配置 Apache Hudi 和 Sedona</h2><p>这部分是手动配置依赖包的做法，需要自行确保各个包的版本匹配</p>
+<h3 id="下载依赖包"><a href="#下载依赖包" class="headerlink" title="下载依赖包"></a>下载依赖包</h3><p>需要以下 JAR 包：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">sedona-spark-shaded-3.4_2.12-1.4.1.jar</span><br><span class="line">hudi-spark3.4-bundle_2.12-1.0.0.jar</span><br><span class="line">geotools-wrapper-1.4.0-28.2.jar</span><br></pre></td></tr></table></figure>
+
+<p>建议放在 Spark home 目录或统一的包管理位置。</p>
+<h3 id="启动-PySpark-with-Hudi-Sedona"><a href="#启动-PySpark-with-Hudi-Sedona" class="headerlink" title="启动 PySpark with Hudi &amp; Sedona"></a>启动 PySpark with Hudi &amp; Sedona</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">pyspark --master spark://192.168.1.100:7077 \</span><br><span class="line">  --packages org.apache.hudi:hudi-spark3.4-bundle_2.12:1.0.0 \</span><br><span class="line">  --conf <span class="string">&#x27;spark.serializer=org.apache.spark.serializer.KryoSerializer&#x27;</span> \</span><br><span class="line">  --conf <span class="string">&#x27;spark.sql.catalog.spark_catalog=org.apache.spark.sql.hudi.catalog.HoodieCatalog&#x27;</span> \</span><br><span class="line">  --conf <span class="string">&#x27;spark.sql.extensions=org.apache.spark.sql.hudi.HoodieSparkSessionExtension&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="或使用本地-JAR"><a href="#或使用本地-JAR" class="headerlink" title="或使用本地 JAR"></a>或使用本地 JAR</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">pyspark --master spark://192.168.1.100:7077 \</span><br><span class="line">  --jars /path/to/hudi-spark3.4-bundle_2.12-1.0.0.jar,/path/to/sedona-spark-shaded-3.4_2.12-1.4.1.jar \</span><br><span class="line">  --conf <span class="string">&#x27;spark.serializer=org.apache.spark.serializer.KryoSerializer&#x27;</span> \</span><br><span class="line">  --conf <span class="string">&#x27;spark.sql.catalog.spark_catalog=org.apache.spark.sql.hudi.catalog.HoodieCatalog&#x27;</span> \</span><br><span class="line">  --conf <span class="string">&#x27;spark.sql.extensions=org.apache.spark.sql.hudi.HoodieSparkSessionExtension&#x27;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="提交-Spark-作业"><a href="#提交-Spark-作业" class="headerlink" title="提交 Spark 作业"></a>提交 Spark 作业</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">spark-submit --master spark://192.168.1.100:7077 \</span><br><span class="line">  --packages org.apache.hudi:hudi-spark3.4-bundle_2.12:1.0.0 \</span><br><span class="line">  --conf <span class="string">&#x27;spark.serializer=org.apache.spark.serializer.KryoSerializer&#x27;</span> \</span><br><span class="line">  your_script.py</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h1 id="环境相关使用方案"><a href="#环境相关使用方案" class="headerlink" title="环境相关使用方案"></a>环境相关使用方案</h1><h2 id="WebUI相关"><a href="#WebUI相关" class="headerlink" title="WebUI相关"></a>WebUI相关</h2><p>在校园网内的集群，外部可能不能直接访问HDFS和Spark的WebUI</p>
+<p>相对简单的方案是ssh转发端口到服务器配置过密钥的设备本地</p>
+<p>在本地cmd执行</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">ssh -i D:\key -L 8080:192.168.1.100:8080 root@GATEWAY_IP -p 21040</span><br><span class="line"></span><br><span class="line">ssh -i D:\key -L 9870:192.168.1.100:9870  root@GATEWAY_IP -p 21040</span><br></pre></td></tr></table></figure>
+
+<p>之后可以通过本地端口访问</p>
+<p>hdfs的WebUI可以通过可视化的界面删除一些实验后不需要的大数据文件</p>
+<h2 id="集群重启"><a href="#集群重启" class="headerlink" title="集群重启"></a>集群重启</h2><p>Hadoop：&#x2F;opt&#x2F;hadoop&#x2F;sbin</p>
+<p>Spark: &#x2F;opt&#x2F;spark&#x2F;sbin</p>
+<p>在里面找相关的脚本即可</p>
+<p>比如关闭Spark集群可以分别执行stop-workers.sh和stop-master.sh</p>
+<h2 id="GeoMesa"><a href="#GeoMesa" class="headerlink" title="GeoMesa"></a>GeoMesa</h2><p>论文中做了GeoMesa的对比试验，相关环境配置也有一定麻烦</p>
+<p>Hadoop和Spark集群基础不变</p>
+<p>GeoMesa对于一些jar包的版本依赖不同<br>最终用了下面两个包可以对上目前的Hadoop和Spark环境</p>
+<p>&#x2F;root&#x2F;geomesa-gt-spark-runtime_2.12-5.1.0.jar</p>
+<p>&#x2F;root&#x2F;geomesa-fs-spark-runtime_2.12-5.1.0.jar</p>
+<p>另外注意python虚拟环境中的版本也要对上，Sedona可能要用1.8.1（Hudi环境用的1.4.1）</p>
+<h2 id="Log相关"><a href="#Log相关" class="headerlink" title="Log相关"></a>Log相关</h2><p>spark集群运行的时候会有很多log，建议都采取下述方法打印到log file里方便查阅，也不会在terminal产生过多输出</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">spark-submit ......  &gt;&gt; log_route/log_file_name.log 2&gt;&amp;1 </span><br></pre></td></tr></table></figure>
+</div><!-- comment system--><div class="container"><hr></div></article><footer id="footer"><div class="container"><div class="bar"><div class="social"><a href="/atom.xml" target="_blank"><i class="fa fa-rss"></i></a></div><div class="footer">© 2026 <a href="/" rel="nofollow">Joey Zhang</a>. Powered by <a rel="nofollow" target="_blank" href="https://hexo.io">Hexo</a>. Theme <a target="_blank" href="https://github.com/lotabout/very-simple">very-simple</a>.</div></div></div></footer><link rel="stylesheet" type="text/css" href="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.css"><script src="//cdn.bootcss.com/jquery/2.0.3/jquery.min.js"></script><script src="//cdn.bootcss.com/fancybox/2.1.5/jquery.fancybox.pack.js"></script><script>$(document).ready(function() {
+    $(".fancybox").fancybox();
+});
+</script></body></html>
