@@ -5,12 +5,10 @@ tags:
   - GPU
   - 技术笔记
   - CuPy
-  - CUDA
-  - NumPy
 ---
-CuPy 是一个基于 CUDA 的 NumPy 替代品，可以在 NVIDIA GPU 上执行高性能的数值计算。由于其语法与NumPy高度一致，因此可以很简单地将原本NumPy的代码替换为CuPy
-
-本文记录CuPy 的安装、配置和使用方法。
+> CuPy 是一个基于 CUDA 的 NumPy 替代品，可以在 NVIDIA GPU 上执行高性能的数值计算。
+> 由于其语法与NumPy高度一致，因此可以很简单地将原本NumPy的代码替换为CuPy
+> 本文记录CuPy 的安装、配置和使用方法。
 
 ## 安装和配置
 

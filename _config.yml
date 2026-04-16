@@ -4,8 +4,8 @@
 
 # Site
 title: JoeyZhang's Sleeptalking
-subtitle: ''
-description: '学过那么点GIS，写过那么点代码，偶尔碎碎念'
+subtitle: '学过那么点GIS，写过那么点代码，时常碎碎念'
+description: ''
 keywords:
 author: Joey Zhang
 language: ch
@@ -97,6 +97,18 @@ ignore:
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
 theme: very-simple
+
+# MathJax (server-side) for LaTeX equations in posts.
+# Requires: npm i hexo-filter-mathjax --save
+mathjax:
+  tags: none
+  single_dollars: true
+  cjk_width: 0.9
+  normal_width: 0.6
+  append_css: true
+  every_page: false
+  packages:
+  extension_options: {}
 
 # Deployment
 ## Docs: https://hexo.io/docs/one-command-deployment
