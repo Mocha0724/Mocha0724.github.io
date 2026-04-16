@@ -70,15 +70,20 @@ header .container {
   font-family: "Comic Sans MS", cursive, LiSu, sans-serif;
   border-bottom: 0.3em solid #333;
 }
+header .container .title-group {
+  display: inline-block;
+}
 header .container .title {
   color: #EEE;
   text-decoration: none;
   font-size: 2.4em;
+  display: block;
 }
 header .container .subtitle {
   color: #aaa;
   font-size: 1.4em;
-  margin-left: 1.2em;
+  margin-left: 0;
+  display: block;
 }
 @media only screen and (max-width: 414px) {
   header {
