@@ -1,0 +1,15 @@
+favicon: favicon url
+avatar: avatar url
+
+menu:
+  Home: /
+  Archives: /archives
+  About: /about
+
+copyright: copyright
+
+gitalk:
+  client_id: 
+  client_secret: 
+  repo: 
+  owner: 

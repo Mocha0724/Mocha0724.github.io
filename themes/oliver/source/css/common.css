@@ -1,0 +1,57 @@
+body {
+    font-family: 'JetBrains Mono', sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+html {
+    height: 100%;
+}
+
+p {
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+    html, img, .hljs { 
+        filter: invert(1) hue-rotate(180deg);
+    }
+}
+
+a:link {
+    text-decoration: underline;
+    color: black;
+}
+a:visited {
+    color: black;
+    text-decoration:none;
+}
+a:hover {
+    color: black;
+    text-decoration: underline;
+}
+a:active {
+    color: black;
+    text-decoration:underline;
+}
+
+@media only screen and (max-width: 500px) {
+    .footer {
+        width: 70%;
+        position: static;
+        bottom: 0;
+        margin-bottom: 15px;
+    }
+}
+
+@media screen and (max-width: 1920px) {
+    .footer {
+        position: static;
+        bottom: 0;
+        margin-bottom: 15px;
+    }
+}

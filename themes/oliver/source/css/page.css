@@ -1,0 +1,79 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.profile {
+    display: flex;
+    gap: 10px;
+}
+
+.profile-icon {
+    font-size: 20px;
+}
+
+@media (min-width: 10px) and (max-width: 500px) {
+    .page {
+        margin: 10%;
+    }
+
+    .breadcrumb {
+        position: absolute;
+        left: 0;
+        top: 0;
+        margin-top: 5%;
+        margin-left: 5%;
+    }
+
+    .page-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-top: 10%;
+    }
+
+    .page-title {
+        font-size: 30px;
+        font-weight: bold;
+    }
+
+    .page-meta {
+        font-style: italic;
+    }
+}
+
+@media (min-width: 501px) and (max-width: 1920px) {
+    .breadcrumb {
+        position: absolute;
+        left: 0;
+        top: 0;
+        margin-top: 20px;
+        margin-left: 20px;
+    }
+
+    .page-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 55%;
+        margin-top: 5%;
+    }
+
+    .page-title {
+        font-size: 30px;
+        font-weight: bold;
+    }
+
+    .page-content {
+        width: 700px;
+        text-align: left;
+    }
+
+    #gitalk-container {
+        width: 700px;
+    }
+}
